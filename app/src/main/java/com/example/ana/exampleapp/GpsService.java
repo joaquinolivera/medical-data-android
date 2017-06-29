@@ -15,6 +15,8 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
+import java.util.List;
+
 import static android.content.ContentValues.TAG;
 
 
@@ -33,7 +35,6 @@ public class GpsService extends Service implements LocationListener {
         } catch (Exception e) {
             Log.e(TAG,String.format("Error en ejecucion del servicio GpsService %s", e.getMessage()),e);
         }
-        locationManager.removeUpdates(this);
         stopSelf();
     }
 
@@ -77,12 +78,25 @@ public class GpsService extends Service implements LocationListener {
 
     public void gpsLocationManager() {
         locationManager = (LocationManager) getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
-        //noinspection MissingPermission
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, Variables.TIME_FOR_LOCATION_MILLI, 0, this);
+        setnLocation(getLastKnownLocation());
+    }
+
+    private Location getLastKnownLocation() {
+        List<String> providers = locationManager.getProviders(true);
+        Location bestLocation = null;
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return;
         }
-        setnLocation(locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER));
+        for (String provider : providers) {
+            Location l = locationManager.getLastKnownLocation(provider);
+            if (l == null) {
+                continue;
+            }
+            if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
+                // Found best last known location: %s", l);
+                bestLocation = l;
+            }
+        }
+        return bestLocation;
     }
 
 }
